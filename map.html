@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Ethan's Test Map</title>
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+      .map-overlay {
+        font: bold 12px/20px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        position: absolute;
+        width: 25%;
+        top: 0;
+        left: 0;
+        padding: 10px;
+      }
+
+      .map-overlay .map-overlay-inner {
+        background-color: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      .map-overlay label {
+        display: block;
+        margin: 0 0 10px;
+      }
+
+      .map-overlay input {
+        background-color: transparent;
+        display: inline-block;
+        width: 100%;
+        position: relative;
+        margin: 0;
+        cursor: ew-resize;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <!-- Add a container for the transparency slider to the map. -->
+    <div class="map-overlay top">
+      <div class="map-overlay-inner">
+        <label>Layer opacity: <span id="slider-value">100%</span></label>
+        <input
+          id="slider"
+          type="range"
+          min="0"
+          max="100"
+          step="0"
+          value="100"
+        />
+      </div>
+    </div>
+
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZXZhbnZhbGsiLCJhIjoiY21lMzdwdW01MDB3OTJscTdheHNkaWhkZyJ9.XCBDwaFkere8hi1S8_4bSw";
+      const map = new mapboxgl.Map({
+        container: "map", // container ID
+        style: "mapbox://styles/mapbox/light-v11", // style URL
+        center: [-0.13667, 51.51333], // starting position [lng, lat]. Note that lat must be set between -90 and 90
+        zoom: 15, // starting zoom
+      });
+      // Add variables for the slider and its value.
+      const slider = document.getElementById("slider");
+      const sliderValue = document.getElementById("slider-value");
+
+      // Add a raster source to the map.
+      map.on("load", () => {
+        // This is an event listener that waits for the map to load before adding the source and layer.
+        map.addSource("yourID", {
+          type: "raster",
+          tiles: [
+            "https://allmaps.xyz/images/45bbc7ea6e45e5c9/{z}/{x}/{y}.png",
+          ],
+          tileSize: 256,
+        });
+
+        map.addLayer({
+          id: "historical-overlay",
+          source: "yourID",
+          type: "raster",
+        });
+      });
+      // Add an event listener for the slider.
+      slider.addEventListener("input", (e) => {
+        // Adjust the layers opacity. layer here is arbitrary - this could
+        // be another layer name found in your style or a custom layer
+        // added on the fly using `addSource`.
+        map.setPaintProperty(
+          "historical-overlay",
+          "raster-opacity",
+          parseInt(e.target.value, 10) / 100
+        );
+
+        // Value indicator
+        sliderValue.textContent = e.target.value + "%";
+      });
+
+      // Add your geojson data source here.
+      map.on("load", () => {
+        map.addSource("datalayer", {
+          type: "geojson",
+          data: "snow_water_pumps.geojson", // be sure filename and path matches yours.
+        });
+        // add your layer and styles here
+        map.addLayer({
+          id: "snow_water_pumps",
+          type: "circle",
+          source: "datalayer",
+          layout: {},
+          paint: {
+            "circle-radius": 10,
+            "circle-stroke-width": 2,
+            "circle-color": "#88c0d0",
+            "circle-stroke-color": "white",
+          },
+        });
+      });
+
+      // Add your popup event listener here.
+      map.on("click", "snow_water_pumps", (e) => {
+        new mapboxgl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(e.features[0].properties.label)
+          .addTo(map);
+      });
+      // Add a mouseover event listener to the layer.
+      // Change the cursor from a hand to a pointer when
+      // the mouse is over the pumps layer.
+      map.on("mouseenter", "snow_water_pumps", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+
+      // Change the cursor back to the default hand
+      // when it leaves the pumps layer.
+      map.on("mouseleave", "snow_water_pumps", () => {
+        map.getCanvas().style.cursor = "";
+      });
+
+      // Add zoom and rotation controls to the map.
+      map.addControl(new mapboxgl.NavigationControl());
+    </script>
+  </body>
+</html>
